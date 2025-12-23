@@ -50,7 +50,7 @@ function runForCurrentPage() {
   const btn = document.createElement("button");
   btn.id = "tldrit-summary";
   btn.textContent = "Summarize";
-  btn.onclick = async () => {
+  btn.onclick = () => {
     const articleUrl = getArticleLink();
     const origin = new URL(articleUrl).origin + "/*";
 
@@ -63,8 +63,25 @@ function runForCurrentPage() {
         }
 
         chrome.runtime.sendMessage(
-          { type: "SUMMARIZE_ARTICLE", url: articleUrl },
-          (res) => injectSummary(res.summary),
+          { type: "FETCH_ARTICLE_HTML", url: articleUrl },
+          (res) => {
+            if (res.error) {
+              injectSummary("Failed to fetch article");
+              return;
+            }
+
+            // DOMParser allowed in content script
+            const doc = new DOMParser().parseFromString(res.html, "text/html");
+            const text = doc.body.innerText.replace(/\s+/g, " ").trim();
+
+            // send extracted text to background to summarize
+            chrome.runtime.sendMessage(
+              { type: "SUMMARIZE_TEXT", text },
+              (summaryRes) => {
+                injectSummary(summaryRes.summary);
+              },
+            );
+          },
         );
       },
     );
@@ -124,9 +141,6 @@ function injectSummary(summary) {
     </ul>
   `;
 
-  // const comments = document.querySelector(
-  //   '[data-testid="comment-top-meta"]',
-  // )?.parentElement;
   const commentSection = document.querySelector(
     '[id^="comment-tree-content-anchor-"]',
   );

@@ -19,18 +19,9 @@ Write concisely and neutrally.
 Article:
 {{TEXT}}`;
 
-async function fetchArticleText(url) {
-  // const granted = await ensureHostPermission(url);
-  // console.log("Granted permission:", granted);
-  // if (!granted) {
-  //   throw new Error("User denied site permission");
-  // }
+async function fetchArticleHtml(url) {
   const res = await fetch(url);
-  const html = await res.text();
-
-  // Strip HTML → text (basic approach)
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.innerText.slice(0, 15000); // limit tokens
+  return await res.text();
 }
 
 async function summarize(text) {
@@ -69,14 +60,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
     return true; // IMPORTANT: keeps sendResponse alive
   }
-  if (msg.type === "SUMMARIZE_ARTICLE") {
-    fetchArticleText(msg.url)
-      .then((text) => summarize(text)) // use your async summarize
+  if (msg.type === "FETCH_ARTICLE_HTML") {
+    fetch(msg.url)
+      .then((res) => res.text())
+      .then((html) => sendResponse({ html }))
+      .catch(() => sendResponse({ error: true }));
+    return true;
+  }
+  if (msg.type === "SUMMARIZE_TEXT") {
+    summarize(msg.text) // your existing summarize function
       .then((summary) => sendResponse({ summary }))
-      .catch((err) => {
-        console.error(err);
-        sendResponse({ summary: "Error summarizing article" });
-      });
-    return true; // must return true for async sendResponse
+      .catch(() => sendResponse({ summary: "Error summarizing article" }));
+    return true; // async sendResponse
   }
 });
