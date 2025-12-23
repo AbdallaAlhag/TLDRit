@@ -52,25 +52,24 @@ function runForCurrentPage() {
   btn.textContent = "Summarize";
   btn.onclick = async () => {
     const articleUrl = getArticleLink();
-
     const origin = new URL(articleUrl).origin + "/*";
 
-    const granted = await chrome.permissions.request({
-      origins: [origin],
-    });
-
-    if (!granted) {
-      alert("Permission denied for this site");
-      return;
-    }
-
     chrome.runtime.sendMessage(
-      { type: "SUMMARIZE_ARTICLE", url: articleUrl },
+      { type: "REQUEST_PERMISSION", origin },
       (response) => {
-        injectSummary(response.summary);
+        if (!response?.granted) {
+          alert("Permission denied");
+          return;
+        }
+
+        chrome.runtime.sendMessage(
+          { type: "SUMMARIZE_ARTICLE", url: articleUrl },
+          (res) => injectSummary(res.summary),
+        );
       },
     );
   };
+
   const commentObserver = new MutationObserver(() => {
     const commentSection = document.querySelector(
       '[id^="comment-tree-content-anchor-"]',
@@ -125,11 +124,17 @@ function injectSummary(summary) {
     </ul>
   `;
 
-  const comments = document.querySelector(
-    '[data-testid="comment-top-meta"]',
-  )?.parentElement;
+  // const comments = document.querySelector(
+  //   '[data-testid="comment-top-meta"]',
+  // )?.parentElement;
+  const commentSection = document.querySelector(
+    '[id^="comment-tree-content-anchor-"]',
+  );
 
-  if (comments) {
-    comments.prepend(container);
+  if (commentSection) {
+    console.log("comment found");
+    commentSection.prepend(container);
+  } else {
+    console.log("comment not found");
   }
 }

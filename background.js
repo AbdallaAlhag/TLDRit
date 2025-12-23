@@ -20,11 +20,11 @@ Article:
 {{TEXT}}`;
 
 async function fetchArticleText(url) {
-  const granted = await ensureHostPermission(url);
-
-  if (!granted) {
-    throw new Error("User denied site permission");
-  }
+  // const granted = await ensureHostPermission(url);
+  // console.log("Granted permission:", granted);
+  // if (!granted) {
+  //   throw new Error("User denied site permission");
+  // }
   const res = await fetch(url);
   const html = await res.text();
 
@@ -35,7 +35,7 @@ async function fetchArticleText(url) {
 
 async function summarize(text) {
   const prompt = PROMPT.replace("{{TEXT}}", text);
-
+  console.log("grabbing summary from chatgpt ");
   // Get the API key from chrome.storage.local
   const { openaiKey } = await new Promise((resolve) => {
     chrome.storage.local.get("openaiKey", resolve);
@@ -63,6 +63,12 @@ async function summarize(text) {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "REQUEST_PERMISSION") {
+    chrome.permissions.request({ origins: [msg.origin] }, (granted) => {
+      sendResponse({ granted });
+    });
+    return true; // IMPORTANT: keeps sendResponse alive
+  }
   if (msg.type === "SUMMARIZE_ARTICLE") {
     fetchArticleText(msg.url)
       .then((text) => summarize(text)) // use your async summarize
