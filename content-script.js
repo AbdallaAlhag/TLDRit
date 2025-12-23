@@ -4,14 +4,11 @@ function getArticleLink() {
     console.log("No Article");
     return null;
   }
-  console.log("post: ", !post);
   const outboundLink = post.querySelector('a[href^="http"]')?.href;
-  console.log(outboundLink);
   if (!outboundLink) {
     console.log("Found media post but no article link");
     return null;
   }
-  console.log("Article Link: ", outboundLink);
   return outboundLink || null;
 }
 function isSummarizable(url) {
@@ -32,24 +29,54 @@ function onUrlChange() {
 function runForCurrentPage() {
   if (!location.pathname.startsWith("/r/")) return;
   if (!location.pathname.includes("/comments/")) return;
-
+  // comment-tree-content-anchor-1pt4he6
+  let subredditId = location.pathname.split("/")[4];
+  console.log("subredditId", subredditId);
   // guard against duplicate injectsion
   if (document.getElementById("tldrit-summary")) return;
-  console.log("Running logic for Reddit post page");
   // your summarizer logic here
   let url = getArticleLink();
-  if (!isSummarizable(url)) return;
+  if (url && !isSummarizable(url)) return;
 
-  chrome.runtime.sendMessage(
-    {
-      type: "SUMMARIZE_ARTICLE",
-      url: url,
-    },
-    (response) => {
-      console.log("got summary from background: ", response.summary);
-      injectSummary(response.summary);
-    },
+  // chrome.runtime.sendMessage(
+  //   {
+  //     type: "SUMMARIZE_ARTICLE",
+  //     url: url,
+  //   },
+  //   (response) => {
+  //     console.log("got summary from background: ", response.summary);
+  //     injectSummary(response.summary);
+  //   },
+  // );
+
+  const btn = document.createElement("button");
+  btn.textContent = "Summarize";
+  btn.onclick = async () => {
+    const articleUrl = getArticleLink();
+
+    const origin = new URL(articleUrl).origin + "/*";
+
+    const granted = await chrome.permissions.request({
+      origins: [origin],
+    });
+
+    if (!granted) {
+      alert("Permission denied for this site");
+      return;
+    }
+
+    chrome.runtime.sendMessage(
+      { type: "SUMMARIZE_ARTICLE", url: articleUrl },
+      (response) => {
+        injectSummary(response.summary);
+      },
+    );
+  };
+  let commentSection = document.querySelector(
+    `#comment-tree-content-anchor-${subredditId}`,
   );
+  // document.body.appendChild(btn);
+  btn.before(commentSection);
 }
 /* 1 Run once on initial load */
 runForCurrentPage();

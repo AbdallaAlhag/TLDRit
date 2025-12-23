@@ -9,6 +9,7 @@
     "48": "images/icon-48.png",
     "128": "images/icon-128.png"
   },
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
   "content_scripts": [
     {
       "matches": ["https://*.reddit.com/r/*/comments/*/*"],
@@ -26,5 +27,5 @@
       "128": "images/icon-128.png"
     }
   },
-  "permissions": ["scripting", "activeTab"]
+  "permissions": ["scripting", "activeTab", "storage", "tabs"]
 }
