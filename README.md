@@ -1,2 +1,6 @@
 # TLDRit
-Reddit Post Summarized that shows up as top comment.  
+
+Reddit Post Summarized that shows up as top comment.
+
+Okay, right now 1 request is about 25k input tokens and that makes 2 request
+= $0.01. With $5 worth of tokens you can 1000 request.

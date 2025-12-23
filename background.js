@@ -8,24 +8,30 @@ chrome.storage.local.get("openaiKey", ({ openaiKey }) => {
   }
 });
 
-const PROMPT = `Summarize the following article in 5–7 bullet points.
-Focus on:
-- The main claim
-- Key evidence
-- Any conclusions or implications
+const PROMPT = `You are writing a detailed Reddit comment summarizing an article for other users. Follow these instructions carefully:
 
-Write concisely and neutrally.
+- Write in a natural Reddit comment style, as if you read the article thoroughly.
+- Reference or quote the most important points from the article (1–2 key sentences per point).
+- Connect the content directly to the Reddit post's title, showing why it’s relevant.
+- Include the main claim, key evidence, and major conclusions or implications.
+- Focus on giving the reader the full story without unnecessary fluff or filler.
+- Use 1–3 paragraphs depending on the complexity of the article.
+- Keep a neutral, informative tone — like an insightful Reddit user explaining the article to others.
 
-Article:
-{{TEXT}}`;
+Reddit post title: "{{TITLE}}"
+
+Article content:
+{{TEXT}}
+
+Write the comment below:`;
 
 async function fetchArticleHtml(url) {
   const res = await fetch(url);
   return await res.text();
 }
 
-async function summarize(text) {
-  const prompt = PROMPT.replace("{{TEXT}}", text);
+async function summarize(text, title) {
+  const prompt = PROMPT.replace("{{TEXT}}", text).replace("{{TITLE}}", title);
   console.log("grabbing summary from chatgpt ");
   // Get the API key from chrome.storage.local
   const { openaiKey } = await new Promise((resolve) => {
@@ -68,7 +74,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.type === "SUMMARIZE_TEXT") {
-    summarize(msg.text) // your existing summarize function
+    summarize(msg.text, msg.title) // your existing summarize function
       .then((summary) => sendResponse({ summary }))
       .catch(() => sendResponse({ summary: "Error summarizing article" }));
     return true; // async sendResponse
