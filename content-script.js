@@ -30,8 +30,6 @@ function runForCurrentPage() {
   if (!location.pathname.startsWith("/r/")) return;
   if (!location.pathname.includes("/comments/")) return;
   // comment-tree-content-anchor-1pt4he6
-  let subredditId = location.pathname.split("/")[4];
-  console.log("subredditId", subredditId);
   // guard against duplicate injectsion
   if (document.getElementById("tldrit-summary")) return;
   // your summarizer logic here
@@ -50,6 +48,7 @@ function runForCurrentPage() {
   // );
 
   const btn = document.createElement("button");
+  btn.id = "tldrit-summary";
   btn.textContent = "Summarize";
   btn.onclick = async () => {
     const articleUrl = getArticleLink();
@@ -72,11 +71,22 @@ function runForCurrentPage() {
       },
     );
   };
-  let commentSection = document.querySelector(
-    `#comment-tree-content-anchor-${subredditId}`,
-  );
-  // document.body.appendChild(btn);
-  btn.before(commentSection);
+  const commentObserver = new MutationObserver(() => {
+    const commentSection = document.querySelector(
+      '[id^="comment-tree-content-anchor-"]',
+    );
+    if (!commentSection) return;
+
+    commentSection.before(btn);
+    console.log("btn appended");
+
+    commentObserver.disconnect();
+  });
+
+  commentObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 }
 /* 1 Run once on initial load */
 runForCurrentPage();
