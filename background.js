@@ -31,7 +31,7 @@ async function fetchArticleHtml(url) {
 }
 
 async function summarize(text, title) {
-  console.log(text, title);
+  // console.log(text, title);
   const prompt = PROMPT.replace("{{TEXT}}", text).replace("{{TITLE}}", title);
   console.log("grabbing summary from chatgpt ");
   // Get the API key from chrome.storage.local
@@ -92,7 +92,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true; // async sendResponse
   }
   if (msg.type === "CHECK_PERMISSION") {
-    chrome.permissions.contains({ origins: [origin] }, (granted) => {
+    chrome.permissions.contains({ origins: [msg.origin] }, (granted) => {
+      console.log(granted);
       sendResponse({ granted });
     });
     return true;

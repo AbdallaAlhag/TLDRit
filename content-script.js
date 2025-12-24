@@ -40,11 +40,13 @@ function runForCurrentPage() {
   if (!location.pathname.includes("/comments/")) return;
   // guard against duplicate injectsion
   if (document.getElementById("tldrit-summary")) return;
-  // your summarizer logic here
+
+  let subredditId = location.pathname.split("/")[4];
+
   let url = getArticleLink();
   let postTitle = document.querySelector('[id^="post-title-"]').textContent;
   postTitle = postTitle.slice(0, 300).trim();
-  console.log(postTitle);
+  // console.log(postTitle);
 
   if (url && !isSummarizable(url)) return;
 
@@ -79,22 +81,39 @@ function runForCurrentPage() {
 
   detectLightOrDarkMode(btn);
 
-  // // checking host permission
-  // chrome.runtime.sendMessage({ type: "CHECK_PERMISSION" }, (response) => {
-  //   if (response.granted) {
-  //     console.log("response granted");
-  //   } else {
-  //     console.log("response not granted");
-  //   }
-  // });
+  const articleUrl = getArticleLink();
+  const origin = new URL(articleUrl).origin + "/*";
 
-  btn.onclick = () => {
+  // checking host permission
+  // won't use this at the moment since we don't want to auto
+  // summarize since it takes tokens right now. Maybe add an option to that.
+
+  // chrome.runtime.sendMessage(
+  //   { type: "CHECK_PERMISSION", origin },
+  //   (response) => {
+  //     console.log("response", response);
+  //     if (response.granted) {
+  //       console.log("response granted");
+  //     } else {
+  //       console.log("response not granted");
+  //     }
+  //   },
+  // );
+
+  btn.onclick = async () => {
     if (document.getElementById("tldrit-summary-comment")) {
       console.log("summary already exists");
       return;
     }
-    const articleUrl = getArticleLink();
-    const origin = new URL(articleUrl).origin + "/*";
+    const cachedSummary = await chrome.storage.local.get(subredditId);
+    console.log("cachedSummary", cachedSummary);
+    if (cachedSummary) {
+      injectSummary(cachedSummary[subredditId]);
+      console.log("cachedSummary!");
+      return;
+    } else {
+      console.log("no cachedSummary");
+    }
 
     chrome.runtime.sendMessage(
       { type: "REQUEST_PERMISSION", origin },
@@ -118,12 +137,15 @@ function runForCurrentPage() {
             const MAX_CHARS = 8000; // safe upper bound
 
             text = text.slice(0, MAX_CHARS);
-            console.log(text);
+            // console.log(text);
             // send extracted text to background to summarize
             chrome.runtime.sendMessage(
               { type: "SUMMARIZE_TEXT", text, title: postTitle },
 
-              (summaryRes) => {
+              async (summaryRes) => {
+                await chrome.storage.local.set({
+                  [subredditId]: summaryRes.summary,
+                });
                 injectSummary(summaryRes.summary);
               },
             );
