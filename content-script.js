@@ -1,3 +1,12 @@
+// TODO:
+// [ ] cache summary with page id
+// [ ] add loading or spinner with a loading bar or countdown
+// [ ] remove button after summary is added
+// [ ] check permission, but also need to add an option to toggle auto summary
+// [ ] option page with ability to change prompt and easier open ai key input isntead of dev tools.
+// [ ] (maybe a additional server that i could host that caches it so it would save users tokens)
+//
+
 function getArticleLink() {
   const post = document.querySelector('[slot="post-media-container"]');
   if (!post) {
@@ -33,7 +42,9 @@ function runForCurrentPage() {
   if (document.getElementById("tldrit-summary")) return;
   // your summarizer logic here
   let url = getArticleLink();
-  let postTitle = document.querySelector('[id^="post-title-"]');
+  let postTitle = document.querySelector('[id^="post-title-"]').textContent;
+  postTitle = postTitle.slice(0, 300).trim();
+  console.log(postTitle);
 
   if (url && !isSummarizable(url)) return;
 
@@ -67,6 +78,16 @@ function runForCurrentPage() {
   };
 
   detectLightOrDarkMode(btn);
+
+  // // checking host permission
+  // chrome.runtime.sendMessage({ type: "CHECK_PERMISSION" }, (response) => {
+  //   if (response.granted) {
+  //     console.log("response granted");
+  //   } else {
+  //     console.log("response not granted");
+  //   }
+  // });
+
   btn.onclick = () => {
     if (document.getElementById("tldrit-summary-comment")) {
       console.log("summary already exists");
@@ -84,7 +105,7 @@ function runForCurrentPage() {
         }
 
         chrome.runtime.sendMessage(
-          { type: "FETCH_ARTICLE_HTML", url: articleUrl, title: postTitle },
+          { type: "FETCH_ARTICLE_HTML", url: articleUrl },
           (res) => {
             if (res.error) {
               injectSummary("Failed to fetch article");
@@ -93,11 +114,15 @@ function runForCurrentPage() {
 
             // DOMParser allowed in content script
             const doc = new DOMParser().parseFromString(res.html, "text/html");
-            const text = doc.body.innerText.replace(/\s+/g, " ").trim();
+            let text = doc.body.innerText.replace(/\s+/g, " ").trim();
+            const MAX_CHARS = 8000; // safe upper bound
 
+            text = text.slice(0, MAX_CHARS);
+            console.log(text);
             // send extracted text to background to summarize
             chrome.runtime.sendMessage(
-              { type: "SUMMARIZE_TEXT", text },
+              { type: "SUMMARIZE_TEXT", text, title: postTitle },
+
               (summaryRes) => {
                 injectSummary(summaryRes.summary);
               },

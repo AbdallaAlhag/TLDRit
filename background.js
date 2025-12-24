@@ -8,22 +8,22 @@ chrome.storage.local.get("openaiKey", ({ openaiKey }) => {
   }
 });
 
-const PROMPT = `You are writing a detailed Reddit comment summarizing an article for other users. Follow these instructions carefully:
+const PROMPT = `
+Write a concise Reddit-style comment summarizing the article.
 
-- Write in a natural Reddit comment style, as if you read the article thoroughly.
-- Reference or quote the most important points from the article (1–2 key sentences per point).
-- Connect the content directly to the Reddit post's title, showing why it’s relevant.
-- Include the main claim, key evidence, and major conclusions or implications.
-- Focus on giving the reader the full story without unnecessary fluff or filler.
-- Use 1–3 paragraphs depending on the complexity of the article.
-- Keep a neutral, informative tone — like an insightful Reddit user explaining the article to others.
+Requirements:
+- 1–3 short paragraphs
+- Neutral, informative tone
+- Explain the main claim, key evidence, and conclusions
+- Reference 1–2 important sentences or facts
+- Connect the summary to the Reddit post title
 
-Reddit post title: "{{TITLE}}"
+Reddit post title:
+{{TITLE}}
 
-Article content:
+Article:
 {{TEXT}}
-
-Write the comment below:`;
+`;
 
 async function fetchArticleHtml(url) {
   const res = await fetch(url);
@@ -31,6 +31,7 @@ async function fetchArticleHtml(url) {
 }
 
 async function summarize(text, title) {
+  console.log(text, title);
   const prompt = PROMPT.replace("{{TEXT}}", text).replace("{{TITLE}}", title);
   console.log("grabbing summary from chatgpt ");
   // Get the API key from chrome.storage.local
@@ -42,21 +43,32 @@ async function summarize(text, title) {
     console.error("OpenAI API key not set in chrome.storage.local");
     return "Error: API key not found";
   }
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openaiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-  const data = await res.json();
-  console.log(data.choices[0].message.content);
-  return data.choices[0].message.content;
+    if (!res.ok) {
+      const errText = await res.text();
+
+      throw new Error(`OpenAI error ${res.status}: ${errText}`);
+    }
+
+    const data = await res.json();
+    console.log(data.choices[0].message.content);
+    return data.choices[0].message.content;
+  } catch (err) {
+    console.log("Sumarrize failed: ", err);
+    throw err;
+  }
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -78,5 +90,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       .then((summary) => sendResponse({ summary }))
       .catch(() => sendResponse({ summary: "Error summarizing article" }));
     return true; // async sendResponse
+  }
+  if (msg.type === "CHECK_PERMISSION") {
+    chrome.permissions.contains({ origins: [origin] }, (granted) => {
+      sendResponse({ granted });
+    });
+    return true;
   }
 });
