@@ -8,6 +8,57 @@ chrome.storage.local.get("openaiKey", ({ openaiKey }) => {
   }
 });
 
+chrome.runtime.onStartup.addListener(async () => {
+  checkStorageAndCleanup();
+});
+
+// Create a daily alarm (once per day)
+chrome.alarms.create("dailyStorageCheck", {
+  periodInMinutes: 24 * 60, // 24 hours
+});
+
+chrome.runtime.onStartup.addListener(async () => {
+  const { lastCleanup } = await getLocalStorage("lastCleanup");
+  const now = Date.now();
+  if (!lastCleanup || now - lastCleanup >= 24 * 60 * 60 * 1000) {
+    checkStorageAndCleanup();
+    await chrome.storage.local.set({ lastCleanup: now });
+  }
+});
+// Listen for the alarm
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "dailyStorageCheck") {
+    checkStorageAndCleanup();
+  }
+});
+async function checkStorageAndCleanup() {
+  chrome.storage.local.getBytesInUse(null, (bytesUsed) => {
+    const storageLimit = 5242880; // 5MB
+    console.log("storage space =", bytesUsed / storageLimit);
+    if (bytesUsed / storageLimit >= 0.95) {
+      chrome.storage.local.get(null, (items) => {
+        // Convert to array with timestamps
+        const entries = Object.entries(items).map(([key, value]) => ({
+          key,
+          timestamp: value.timestamp || Date.now(),
+        }));
+        // values with no keys will be given date.now which will make them the newest thus never removing them, ex: OpenAI key and lastCleanup
+
+        // Sort oldest first
+        entries.sort((a, b) => a.timestamp - b.timestamp);
+
+        // Remove oldest 50%
+        const toRemove = entries
+          .slice(0, Math.ceil(entries.length / 2))
+          .map((e) => e.key);
+        chrome.storage.local.remove(toRemove, () => {
+          console.log(`Cleared ${toRemove.length} old entries to free space.`);
+        });
+      });
+    }
+  });
+}
+
 const PROMPT = `
 Write a concise Reddit-style comment summarizing the article.
 
@@ -66,7 +117,7 @@ async function summarize(text, title) {
     }
 
     const data = await res.json();
-    console.log(data.choices[0].message.content);
+    // console.log(data.choices[0].message.content);
     return data.choices[0].message.content;
   } catch (err) {
     console.log("Sumarrize failed: ", err);
