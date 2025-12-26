@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>TLDRit Options</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        background: #f9f9fb;
+        color: #1c1c1c;
+        padding: 32px;
+        max-width: 520px;
+        margin: 0 auto;
+      }
+
+      h2 {
+        margin-bottom: 16px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .setting {
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+
+      label {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+
+      input[type="password"] {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+      }
+
+      input[type="password"]:focus {
+        outline: none;
+        border-color: #0078d4;
+        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+      }
+
+      button {
+        margin-top: 12px;
+        padding: 8px 14px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        background: #0078d4;
+        color: white;
+      }
+
+      button:hover {
+        background: #0063b1;
+      }
+
+      #status {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #2e7d32;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>TLDRit Settings</h2>
+
+    <div class="setting">
+      <label for="AIKey">OpenAI API Key</label>
+      <input type="password" id="AIKey" placeholder="sk-..." />
+      <button id="save">Save</button>
+      <p id="status"></p>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

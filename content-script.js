@@ -1,7 +1,7 @@
 // TODO:
 // [✔] cache summary with page id
 // [✔] add loading or spinner with a loading bar or countdown
-// [ ] check and clear cache
+// [✔] check and clear cache
 // [ ] check permission, but also need to add an option to toggle auto summary
 // [ ] option page with ability to change prompt and easier open ai key input isntead of dev tools.
 // [ ] (maybe a additional server that i could host that caches it so it would save users tokens)
@@ -83,111 +83,125 @@ function runForCurrentPage() {
       console.log("summary already exists");
       return;
     }
-    const cachedSummary = await chrome.storage.local.get(subredditId);
-    console.log("cachedSummary", cachedSummary);
-    const isCacheEmpty = Object.keys(cachedSummary).length === 0;
-    if (!isCacheEmpty) {
-      injectSummary(cachedSummary[subredditId].summary);
-      console.log("summary already cached, went ahead and inected it");
-      return;
-    } else {
-      console.log("No summary cached, going ahead and fetching");
-    }
 
-    spinner.style.display = "inline-block"; // show spinner
-    btn.disabled = true; // optional: disable button while loading
-
-    // chrome.runtime.sendMessage(
-    //   { type: "REQUEST_PERMISSION", origin },
-    //   (response) => {
-    //     if (!response?.granted) {
-    //       alert("Permission denied");
-    //       return;
-    //     }
-    //
-    //     chrome.runtime.sendMessage(
-    //       { type: "FETCH_ARTICLE_HTML", url: articleUrl },
-    //       (res) => {
-    //         if (res?.error) {
-    //           console.error(res.error);
-    //           injectSummary("Failed to fetch article");
-    //
-    //           return;
-    //         }
-    //
-    //         // DOMParser allowed in content script
-    //         const doc = new DOMParser().parseFromString(res.html, "text/html");
-    //         let text = doc.body.innerText.replace(/\s+/g, " ").trim();
-    //         const MAX_CHARS = 8000; // safe upper bound
-    //
-    //         text = text.slice(0, MAX_CHARS);
-    //         // console.log(text);
-    //         // send extracted text to background to summarize
-    //         chrome.runtime.sendMessage(
-    //           { type: "SUMMARIZE_TEXT", text, title: postTitle },
-    //
-    //           async (summaryRes) => {
-    //             await chrome.storage.local.set({
-    //               [subredditId]: summaryRes.summary,
-    //             });
-    //             injectSummary(summaryRes.summary);
-    //
-    //           },
-    //         );
-    //       },
-    //     );
-    //   },
-    // );
-    try {
-      // Request permission
-      const permRes = await sendMessageAsync({
-        type: "REQUEST_PERMISSION",
-        origin,
-      });
-
-      if (!permRes?.granted) {
-        alert("Permission denied");
+    let cachedSummary;
+    let openaiKey;
+    chrome.storage.local.get([subredditId, "openaiKey"], async (result) => {
+      cachedSummary = result[subredditId];
+      openaiKey = result.openaiKey;
+      console.log(cachedSummary, openaiKey);
+      if (!openaiKey) {
+        injectSummary(
+          "Missing openai key, please open popup and input your openai key",
+        );
         return;
       }
-
-      // Fetch article HTML
-      const fetchRes = await sendMessageAsync({
-        type: "FETCH_ARTICLE_HTML",
-        url: articleUrl,
-      });
-
-      if (fetchRes?.error) {
-        console.error(fetchRes.error);
-        injectSummary("Failed to fetch article");
+      console.log("cachedSummary", cachedSummary);
+      const isCacheEmpty =
+        !cachedSummary || Object.keys(cachedSummary).length === 0;
+      if (!isCacheEmpty) {
+        injectSummary(cachedSummary.summary);
+        console.log("summary already cached, went ahead and inected it");
         return;
+      } else {
+        console.log("No summary cached, going ahead and fetching");
       }
 
-      // Parse article
-      const doc = new DOMParser().parseFromString(fetchRes.html, "text/html");
-      let text = doc.body.innerText.replace(/\s+/g, " ").trim();
-      const MAX_CHARS = 8000;
-      text = text.slice(0, MAX_CHARS);
+      spinner.style.display = "inline-block"; // show spinner
+      btn.disabled = true; // optional: disable button while loading
 
-      // Summarize text
-      const summaryRes = await sendMessageAsync({
-        type: "SUMMARIZE_TEXT",
-        text,
-        title: postTitle,
-      });
+      // chrome.runtime.sendMessage(
+      //   { type: "REQUEST_PERMISSION", origin },
+      //   (response) => {
+      //     if (!response?.granted) {
+      //       alert("Permission denied");
+      //       return;
+      //     }
+      //
+      //     chrome.runtime.sendMessage(
+      //       { type: "FETCH_ARTICLE_HTML", url: articleUrl },
+      //       (res) => {
+      //         if (res?.error) {
+      //           console.error(res.error);
+      //           injectSummary("Failed to fetch article");
+      //
+      //           return;
+      //         }
+      //
+      //         // DOMParser allowed in content script
+      //         const doc = new DOMParser().parseFromString(res.html, "text/html");
+      //         let text = doc.body.innerText.replace(/\s+/g, " ").trim();
+      //         const MAX_CHARS = 8000; // safe upper bound
+      //
+      //         text = text.slice(0, MAX_CHARS);
+      //         // console.log(text);
+      //         // send extracted text to background to summarize
+      //         chrome.runtime.sendMessage(
+      //           { type: "SUMMARIZE_TEXT", text, title: postTitle },
+      //
+      //           async (summaryRes) => {
+      //             await chrome.storage.local.set({
+      //               [subredditId]: summaryRes.summary,
+      //             });
+      //             injectSummary(summaryRes.summary);
+      //
+      //           },
+      //         );
+      //       },
+      //     );
+      //   },
+      // );
+      try {
+        // Request permission
+        const permRes = await sendMessageAsync({
+          type: "REQUEST_PERMISSION",
+          origin,
+        });
 
-      // Store & inject summary
-      await chrome.storage.local.set({
-        [subredditId]: { summary: summaryRes.summary, timestamp: Date.now() },
-      });
-      injectSummary(summaryRes.summary);
-    } catch (err) {
-      console.error("Error in TLDR workflow:", err);
-      injectSummary("Something went wrong while summarizing");
-    } finally {
-      // Clean up spinner / re-enable button if needed
-      if (spinner) spinner.style.display = "none";
-      btn.disabled = false;
-    }
+        if (!permRes?.granted) {
+          alert("Permission denied");
+          return;
+        }
+
+        // Fetch article HTML
+        const fetchRes = await sendMessageAsync({
+          type: "FETCH_ARTICLE_HTML",
+          url: articleUrl,
+        });
+
+        if (fetchRes?.error) {
+          console.error(fetchRes.error);
+          injectSummary("Failed to fetch article");
+          return;
+        }
+
+        // Parse article
+        const doc = new DOMParser().parseFromString(fetchRes.html, "text/html");
+        let text = doc.body.innerText.replace(/\s+/g, " ").trim();
+        const MAX_CHARS = 8000;
+        text = text.slice(0, MAX_CHARS);
+
+        // Summarize text
+        const summaryRes = await sendMessageAsync({
+          type: "SUMMARIZE_TEXT",
+          text,
+          title: postTitle,
+        });
+
+        // Store & inject summary
+        await chrome.storage.local.set({
+          [subredditId]: { summary: summaryRes.summary, timestamp: Date.now() },
+        });
+        injectSummary(summaryRes.summary);
+      } catch (err) {
+        console.error("Error in TLDR workflow:", err);
+        injectSummary("Something went wrong while summarizing");
+      } finally {
+        // Clean up spinner / re-enable button if needed
+        if (spinner) spinner.style.display = "none";
+        btn.disabled = false;
+      }
+    });
   };
 
   const commentObserver = new MutationObserver(() => {

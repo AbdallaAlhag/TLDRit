@@ -27,5 +27,10 @@
       "128": "images/icon-128.png"
     }
   },
-  "permissions": ["scripting", "activeTab", "storage", "tabs", "alarms"]
+  "permissions": ["scripting", "activeTab", "storage", "tabs", "alarms"],
+
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  }
 }
