@@ -6,6 +6,10 @@
 // [ ] option page with ability to change prompt and easier open ai key input isntead of dev tools.
 // [ ] (maybe a additional server that i could host that caches it so it would save users tokens)
 //
+//
+// Current bugs:
+// Summarize button does not show up on chrome start intially
+// Article link is not always the one in the post.
 
 function getArticleLink() {
   const post = document.querySelector('[slot="post-media-container"]');
@@ -99,7 +103,8 @@ function runForCurrentPage() {
         chrome.runtime.sendMessage(
           { type: "FETCH_ARTICLE_HTML", url: articleUrl },
           (res) => {
-            if (res.error) {
+            if (res?.error) {
+              console.error(res.error);
               injectSummary("Failed to fetch article");
               return;
             }

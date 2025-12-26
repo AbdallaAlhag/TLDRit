@@ -27,7 +27,10 @@ Article:
 
 async function fetchArticleHtml(url) {
   const res = await fetch(url);
-  return await res.text();
+  if (!res.ok) {
+    throw new Error(`Failed to fetch article: ${res.status}`);
+  }
+  return res.text();
 }
 
 async function summarize(text, title) {
@@ -73,18 +76,45 @@ async function summarize(text, title) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "REQUEST_PERMISSION") {
-    chrome.permissions.request({ origins: [msg.origin] }, (granted) => {
-      sendResponse({ granted });
-    });
+    // chrome.permissions.request({ origins: [msg.origin] }, (granted) => {
+    chrome.permissions.request(
+      {
+        origins: ["https://*/*", "http://*/*"],
+      },
+      (granted) => {
+        sendResponse({ granted });
+      },
+    );
     return true; // IMPORTANT: keeps sendResponse alive
   }
   if (msg.type === "FETCH_ARTICLE_HTML") {
-    fetch(msg.url)
-      .then((res) => res.text())
-      .then((html) => sendResponse({ html }))
-      .catch(() => sendResponse({ error: true }));
-    return true;
+    (async () => {
+      try {
+        const res = await fetch(msg.url);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        }
+
+        const html = await res.text();
+        sendResponse({ html });
+      } catch (err) {
+        console.error("Fetch failed:", err);
+        sendResponse({
+          error: true,
+          message: err.message,
+          name: err.name,
+        });
+      }
+    })();
+
+    return true; // keep message channel open
   }
+  // fetch(msg.url)
+  //   .then((res) => res.text())
+  //   .then((html) => sendResponse({ html }))
+  //   .catch(() => sendResponse({ error: true }));
+  // return true;
   if (msg.type === "SUMMARIZE_TEXT") {
     summarize(msg.text, msg.title) // your existing summarize function
       .then((summary) => sendResponse({ summary }))
