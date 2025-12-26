@@ -1,5 +1,5 @@
 // TODO:
-// [ ] cache summary with page id
+// [✔] cache summary with page id
 // [ ] add loading or spinner with a loading bar or countdown
 // [ ] remove button after summary is added
 // [ ] check permission, but also need to add an option to toggle auto summary
@@ -107,12 +107,13 @@ function runForCurrentPage() {
     }
     const cachedSummary = await chrome.storage.local.get(subredditId);
     console.log("cachedSummary", cachedSummary);
-    if (cachedSummary) {
+    const isCacheEmpty = Object.keys(cachedSummary).length === 0;
+    if (!isCacheEmpty) {
       injectSummary(cachedSummary[subredditId]);
-      console.log("cachedSummary!");
+      console.log("summary already cached, went ahead and inected it");
       return;
     } else {
-      console.log("no cachedSummary");
+      console.log("No summary cached, going ahead and fetching");
     }
 
     chrome.runtime.sendMessage(
@@ -162,7 +163,6 @@ function runForCurrentPage() {
     if (!commentSection) return;
 
     commentSection.before(btn);
-    console.log("btn appended");
 
     commentObserver.disconnect();
   });
