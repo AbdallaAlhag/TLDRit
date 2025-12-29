@@ -2,6 +2,12 @@
 
 Reddit Post Summarized that shows up as top comment.
 
+![TLDRit Button](./images/screenshot1.png)  
+![TLDRit Summary](./images/screenshot2.png)  
+![Full screen image](./images/screenshot3.png)
+
+### Background Info
+
 Okay, right now 1 request is about 25k input tokens and that makes 2 request
 = $0.01. With $5 worth of tokens you can 1000 request.
 
@@ -18,7 +24,7 @@ Average summary length: ~1,000–1,200 characters
 1 char ≈ 2 bytes in JS string → 1,138 × 2 ≈ 2,276 bytes.
 Timestamp + object overhead ~200 bytes
 
-Key (like "1pw4zkb") ~7 bytes
+Key, subredditId, (like "1pw4zkb") ~7 bytes
 
 Total per key-value: ~2500 bytes = 2,500/ 2,242,880(~5MB) ≈ 0.05% of 5MB
 1,000 sumamries = 50% of storage.

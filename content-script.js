@@ -11,7 +11,7 @@
 //
 //
 // Current bugs:
-// Summarize button does not show up sometimes
+// Summarize button does not show up sometimes, usually on first load of reddit
 // Article link is not always the one in the post.
 
 function getArticleLink() {
