@@ -18,12 +18,14 @@ chrome.alarms.create("dailyStorageCheck", {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-  const { lastCleanup } = await getLocalStorage("lastCleanup");
-  const now = Date.now();
-  if (!lastCleanup || now - lastCleanup >= 24 * 60 * 60 * 1000) {
-    checkStorageAndCleanup();
-    await chrome.storage.local.set({ lastCleanup: now });
-  }
+  // const { lastCleanup } = await getLocalStorage("lastCleanup");
+  chrome.storage.local.get("lastCleanup", async ({ lastCleanup }) => {
+    const now = Date.now();
+    if (!lastCleanup || now - lastCleanup >= 24 * 60 * 60 * 1000) {
+      checkStorageAndCleanup();
+      await chrome.storage.local.set({ lastCleanup: now });
+    }
+  });
 });
 // Listen for the alarm
 chrome.alarms.onAlarm.addListener((alarm) => {

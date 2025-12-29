@@ -2,8 +2,11 @@
 // [✔] cache summary with page id
 // [✔] add loading or spinner with a loading bar or countdown
 // [✔] check and clear cache
-// [ ] check permission, but also need to add an option to toggle auto summary
-// [ ] option page with ability to change prompt and easier open ai key input isntead of dev tools.
+// [✔] check permission
+// [ ] but also need to add an option to toggle auto summary
+// [ ] option page
+//   - [ ] with ability to change prompt and
+//   - [✔] easier open ai key input isntead of dev tools.
 // [ ] (maybe a additional server that i could host that caches it so it would save users tokens)
 //
 //
@@ -90,7 +93,7 @@ function runForCurrentPage() {
       cachedSummary = result[subredditId];
       openaiKey = result.openaiKey;
       console.log(cachedSummary, openaiKey);
-      if (!openaiKey) {
+      if (!openaiKey || openaiKey === "sk-xxxx") {
         injectSummary(
           "Missing openai key, please open popup and input your openai key",
         );
