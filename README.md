@@ -2,6 +2,8 @@
 
 Reddit Post Summarized that shows up as top comment.
 
+### Screenshots
+
 ![TLDRit Button](./images/screenshot1.png)  
 ![TLDRit Summary](./images/screenshot2.png)  
 ![Full screen image](./images/screenshot3.png)
