@@ -1,10 +1,6 @@
 chrome.storage.local.get("openaiKey", ({ openaiKey }) => {
   if (!openaiKey) {
-    chrome.storage.local.set({ openaiKey: "sk-xxxx" }, () => {
-      console.log("API key saved locally");
-    });
-  } else {
-    console.log("API key already exists in storage");
+    chrome.storage.local.set({ openaiKey: "sk-xxxx" }, () => {});
   }
 });
 
@@ -36,7 +32,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 async function checkStorageAndCleanup() {
   chrome.storage.local.getBytesInUse(null, (bytesUsed) => {
     const storageLimit = 5242880; // 5MB
-    console.log("storage space =", bytesUsed / storageLimit);
+    // console.log("storage space =", bytesUsed / storageLimit);
     if (bytesUsed / storageLimit >= 0.95) {
       chrome.storage.local.get(null, (items) => {
         // Convert to array with timestamps
@@ -54,7 +50,7 @@ async function checkStorageAndCleanup() {
           .slice(0, Math.ceil(entries.length / 2))
           .map((e) => e.key);
         chrome.storage.local.remove(toRemove, () => {
-          console.log(`Cleared ${toRemove.length} old entries to free space.`);
+          // console.log(`Cleared ${toRemove.length} old entries to free space.`);
         });
       });
     }
@@ -87,9 +83,7 @@ async function fetchArticleHtml(url) {
 }
 
 async function summarize(text, title) {
-  // console.log(text, title);
   const prompt = PROMPT.replace("{{TEXT}}", text).replace("{{TITLE}}", title);
-  console.log("grabbing summary from chatgpt ");
   // Get the API key from chrome.storage.local
   const { openaiKey } = await new Promise((resolve) => {
     chrome.storage.local.get("openaiKey", resolve);
@@ -119,7 +113,6 @@ async function summarize(text, title) {
     }
 
     const data = await res.json();
-    // console.log(data.choices[0].message.content);
     return data.choices[0].message.content;
   } catch (err) {
     console.log("Sumarrize failed: ", err);
@@ -176,7 +169,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === "CHECK_PERMISSION") {
     chrome.permissions.contains({ origins: [msg.origin] }, (granted) => {
-      console.log(granted);
       sendResponse({ granted });
     });
     return true;

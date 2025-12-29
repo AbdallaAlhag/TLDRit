@@ -17,12 +17,10 @@
 function getArticleLink() {
   const post = document.querySelector('[slot="post-media-container"]');
   if (!post) {
-    console.log("No Article");
     return null;
   }
   const outboundLink = post.querySelector('a[href^="http"]')?.href;
   if (!outboundLink) {
-    console.log("Found media post but no article link");
     return null;
   }
   return outboundLink || null;
@@ -38,7 +36,6 @@ function isSummarizable(url) {
 let lastUrl = location.href;
 
 function onUrlChange() {
-  console.log("URL changed:", location.href);
   runForCurrentPage();
 }
 
@@ -51,10 +48,8 @@ function runForCurrentPage() {
   let subredditId = location.pathname.split("/")[4];
 
   let url = getArticleLink();
-  console.log("Current article url: ", url);
   let postTitle = document.querySelector('[id^="post-title-"]').textContent;
   postTitle = postTitle.slice(0, 300).trim();
-  // console.log(postTitle);
 
   if (url && !isSummarizable(url)) return;
 
@@ -63,7 +58,15 @@ function runForCurrentPage() {
   const { container, spinner, btn } = createTLDRitButtonWithSpinner();
 
   const articleUrl = getArticleLink();
-  const origin = new URL(articleUrl).origin + "/*";
+  if (!articleUrl) return;
+
+  let origin;
+  try {
+    origin = new URL(articleUrl).origin + "/*";
+  } catch (e) {
+    console.error("Invalid article URL: ", articleUrl);
+    return;
+  }
 
   // checking host permission
   // won't use this at the moment since we don't want to auto
@@ -83,7 +86,6 @@ function runForCurrentPage() {
 
   btn.onclick = async () => {
     if (document.getElementById("tldrit-summary-comment")) {
-      console.log("summary already exists");
       return;
     }
 
@@ -92,68 +94,21 @@ function runForCurrentPage() {
     chrome.storage.local.get([subredditId, "openaiKey"], async (result) => {
       cachedSummary = result[subredditId];
       openaiKey = result.openaiKey;
-      console.log(cachedSummary, openaiKey);
       if (!openaiKey || openaiKey === "sk-xxxx") {
         injectSummary(
           "Missing openai key, please open popup and input your openai key",
         );
         return;
       }
-      console.log("cachedSummary", cachedSummary);
       const isCacheEmpty =
         !cachedSummary || Object.keys(cachedSummary).length === 0;
       if (!isCacheEmpty) {
         injectSummary(cachedSummary.summary);
-        console.log("summary already cached, went ahead and inected it");
         return;
-      } else {
-        console.log("No summary cached, going ahead and fetching");
       }
-
       spinner.style.display = "inline-block"; // show spinner
       btn.disabled = true; // optional: disable button while loading
 
-      // chrome.runtime.sendMessage(
-      //   { type: "REQUEST_PERMISSION", origin },
-      //   (response) => {
-      //     if (!response?.granted) {
-      //       alert("Permission denied");
-      //       return;
-      //     }
-      //
-      //     chrome.runtime.sendMessage(
-      //       { type: "FETCH_ARTICLE_HTML", url: articleUrl },
-      //       (res) => {
-      //         if (res?.error) {
-      //           console.error(res.error);
-      //           injectSummary("Failed to fetch article");
-      //
-      //           return;
-      //         }
-      //
-      //         // DOMParser allowed in content script
-      //         const doc = new DOMParser().parseFromString(res.html, "text/html");
-      //         let text = doc.body.innerText.replace(/\s+/g, " ").trim();
-      //         const MAX_CHARS = 8000; // safe upper bound
-      //
-      //         text = text.slice(0, MAX_CHARS);
-      //         // console.log(text);
-      //         // send extracted text to background to summarize
-      //         chrome.runtime.sendMessage(
-      //           { type: "SUMMARIZE_TEXT", text, title: postTitle },
-      //
-      //           async (summaryRes) => {
-      //             await chrome.storage.local.set({
-      //               [subredditId]: summaryRes.summary,
-      //             });
-      //             injectSummary(summaryRes.summary);
-      //
-      //           },
-      //         );
-      //       },
-      //     );
-      //   },
-      // );
       try {
         // Request permission
         const permRes = await sendMessageAsync({
@@ -258,10 +213,7 @@ function injectSummary(summary) {
   );
 
   if (commentSection) {
-    console.log("comment found");
     commentSection.prepend(container);
-  } else {
-    console.log("comment not found");
   }
 }
 
@@ -332,44 +284,6 @@ function createTLDRitSummary() {
   detectLightOrDarkMode(container);
   return container;
 }
-
-// function showSpinner() {
-//   const spinner = document.createElement("div");
-//   spinner.id = "tldrit-spinner";
-//   spinner.style.cssText = `
-//     position: fixed;
-//     top: 50%;
-//     left: 50%;
-//     transform: translate(-50%, -50%);
-//     z-index: 9999;
-//     border: 8px solid #f3f3f3;
-//     border-top: 8px solid #3498db;
-//     border-radius: 50%;
-//     width: 60px;
-//     height: 60px;
-//     animation: spin 1s linear infinite;
-//   `;
-//
-//   // Add keyframes for spin animation
-//   const style = document.createElement("style");
-//   style.textContent = `
-//     @keyframes spin {
-//       0% { transform: translate(-50%, -50%) rotate(0deg); }
-//       100% { transform: translate(-50%, -50%) rotate(360deg); }
-//     }
-//   `;
-//
-//   document.head.appendChild(style);
-//
-//   document.body.appendChild(spinner);
-//   console.log("show spinner called");
-// }
-//
-// function hideSpinner() {
-//   const spinner = document.getElementById("tldrit-spinner");
-//   console.log("hiding spinner called");
-//   if (spinner) spinner.remove();
-// }
 
 function createTLDRitButtonWithSpinner() {
   // Container to hold button + spinner
