@@ -3,6 +3,7 @@
 // [✔] add loading or spinner with a loading bar or countdown
 // [✔] check and clear cache
 // [✔] check permission
+// [ ] needs a fresh reload to post the button first reddit site load.
 // [ ] but also need to add an option to toggle auto summary
 // [ ] option page
 //   - [ ] with ability to change prompt and
